@@ -1,0 +1,38 @@
+{
+  "name": "@carrier/platform",
+  "version": "0.1.0",
+  "description": "Shared auth and billing for the Carrier app portfolio.",
+  "license": "UNLICENSED",
+  "private": false,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./auth": "./dist/auth/index.js",
+    "./billing": "./dist/billing/index.js"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepare": "tsc"
+  },
+  "peerDependencies": {
+    "@supabase/supabase-js": ">=2",
+    "expo-secure-store": "*",
+    "react-native": "*",
+    "react-native-purchases": ">=10",
+    "react-native-url-polyfill": "*"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.112.4",
+    "@types/react": "~19.2.2",
+    "expo-secure-store": "~57.0.1",
+    "react-native": "0.86.2",
+    "react-native-purchases": "^10.8.0",
+    "typescript": "~6.0.3",
+    "react-native-url-polyfill": "^4.0.0"
+  }
+}
