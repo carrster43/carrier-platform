@@ -46,11 +46,21 @@ Pinned by git tag, so one app upgrading cannot break another:
 "@carrier/platform": "github:carrster43/carrier-platform#v0.1.0"
 ```
 
-npm runs the `prepare` script on a git install, which compiles `src` to `dist`,
-so there is no build artefact in the repository and no registry to publish to.
-Moving to GitHub Packages later changes only the dependency line.
+`dist/` is committed. That is deliberate and not laziness: npm 11 defers a git
+dependency's `prepare` script pending approval, and an install that skips it
+produces a package with no `dist` **and no error**. A CI runner, a fresh
+machine, or anyone with `ignore-scripts=true` would get a silently empty
+dependency. Committing the build output makes installation script-independent.
 
-To cut a release: bump `version`, commit, then `git tag vX.Y.Z && git push --tags`.
+`prepare` is kept so a working copy of this repo stays buildable, so the two
+can drift. The release ritual exists to stop that:
+
+```
+npm run build && git add -A && git commit && git tag vX.Y.Z && git push --tags
+```
+
+Build before tagging, always. Moving to GitHub Packages later removes the need
+for committed output and changes only the dependency line.
 
 ## The BillingProfile boundary
 
