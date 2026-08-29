@@ -1,6 +1,6 @@
 {
   "name": "@carrier/platform",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Shared auth and billing for the Carrier app portfolio.",
   "license": "UNLICENSED",
   "private": false,

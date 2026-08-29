@@ -13,7 +13,7 @@ measurably duplicated between them:
 | `auth` | `lib/supabase.ts`, byte-identical in both | `createSupabaseClient(url, key)` |
 | `billing/access` | `lib/access.ts`, byte-identical in both | `evaluateAccess(profile, { trialDays })` |
 | `billing/purchases` | `lib/purchases.ts`, 2 lines apart | config passed in, no module-level constant |
-| `functions/` | two Edge Functions, byte-identical | canonical copies |
+| `functions/` | three Edge Functions | canonical copies |
 
 **Left in the apps on purpose:**
 
@@ -73,9 +73,42 @@ Both app types satisfy it structurally, so neither had to change to comply.
 
 `functions/` holds canonical copies rather than a dependency, because Supabase
 Edge Functions are Deno and are deployed per project from each app's own
-`supabase/functions/` directory. Copy them in; treat this directory as the
-source of truth when they diverge.
+`supabase/functions/` directory, and this repository is private, so a raw URL
+import would need a token. Copy them in; treat this directory as the source of
+truth when they diverge.
 
-Each function hardcodes its own `TRIAL_DAYS`, which cannot import from here.
-That duplication is documented in the functions themselves and is the one piece
-of drift this extraction does not fix.
+`delete-account.ts` and `revenuecat-webhook.ts` are copy-and-edit: each app's
+version carries its own header and its own `TRIAL_DAYS`. That duplication is the
+one piece of drift the first extraction did not fix.
+
+**`extract-engine.ts` is different, and better.** It exports `createExtractor(config)`
+rather than a handler, so the copied file is identical in every app and the app's
+own function holds only vocabulary. Re-copying it cannot clobber an app-specific
+edit, because there are no app-specific edits. `trialDays` is an argument here,
+so the new rail cannot drift the way the older two did.
+
+### The extraction engine, and the evidence for it
+
+Added at **v0.2.0**, extracted from Paper Trail (29), House Ledger (26) and
+Doorstop (12) at the third instance, which is what `ARCHITECTURE.md` asks for.
+
+The justification was measured rather than assumed: the 250 lines from
+`const json =` to the end of the handler were **byte-identical across all three
+apps**, verified by diff. Everything that differed was vocabulary. The refactor
+was then checked by generating each app's system prompt and tool schema from its
+new config and diffing against the hand-written originals: **Paper Trail and
+House Ledger reproduce byte-for-byte**, and Doorstop differs by one deliberate
+improvement, the engine naming the refused field explicitly where the original
+said only "flag it".
+
+The seam is data, not behaviour. An app supplies strings and a JSON-schema
+fragment; it cannot alter control flow. Two things are deliberately not
+configurable: the 0.75 confidence floor and the instruction never to inflate it.
+An app wanting to soften those has misunderstood what the engine is for.
+
+**Two confidence axes.** Paper Trail's `expiry_confidence` answers "was this READ
+correctly". Doorstop needed "is this JUDGEMENT mine to make at all" -- a legible
+receipt still does not say whether a new roof bettered or restored a property.
+Generalising only the first axis would have produced a platform that looked right
+for two apps and was wrong for the third, so `refusals` is a first-class part of
+the vocabulary. Apps with nothing to refuse pass none.
