@@ -87,6 +87,19 @@ own function holds only vocabulary. Re-copying it cannot clobber an app-specific
 edit, because there are no app-specific edits. `trialDays` is an argument here,
 so the new rail cannot drift the way the older two did.
 
+### Checking a copy for drift
+
+`functions/` ships inside the package as of v0.2.1, so a consuming app can prove
+its copy is current without cloning this repo:
+
+```bash
+diff supabase/functions/_shared/extract-engine.ts \
+     node_modules/@carrier/platform/functions/extract-engine.ts
+```
+
+Silent divergence is the one real cost of a copy-based rail, and that one line
+removes it. Worth running before touching any extraction behaviour.
+
 ### The extraction engine, and the evidence for it
 
 Added at **v0.2.0**, extracted from Paper Trail (29), House Ledger (26) and

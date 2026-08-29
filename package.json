@@ -1,6 +1,6 @@
 {
   "name": "@carrier/platform",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Shared auth and billing for the Carrier app portfolio.",
   "license": "UNLICENSED",
   "private": false,
@@ -13,7 +13,8 @@
   },
   "files": [
     "dist",
-    "src"
+    "src",
+    "functions"
   ],
   "scripts": {
     "build": "tsc",
