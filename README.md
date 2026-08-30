@@ -112,6 +112,67 @@ liability. `localParts` carries a DST edge and an hour-24 normalisation;
 `entitled` has to agree with the billing package or the server and the client
 disagree about who is a customer.
 
+### Multi-user RLS: considered at three instances, and NOT extracted
+
+Wave C produced three multi-user apps — PillProof (5), Handoff (8) and Relay (6)
+— so `ARCHITECTURE.md`'s rule of three applies. It was measured the same way the
+other two extractions were, and it came back with a different answer.
+
+| candidate | identical lines | outcome |
+|---|---|---|
+| `extract-engine` | 250 of 400 | extracted as a factory (v0.2.0) |
+| `reminder-runtime` | 55 of 330 | extracted as helpers (v0.3.0) |
+| multi-user RLS | **~3** | **not extracted** |
+
+What actually repeats is one line of SQL with three names substituted:
+
+```sql
+create or replace function public.my_<group>_ids()
+returns setof uuid language sql stable security definer set search_path = public as $$
+  select <group>_id from <membership table> where user_id = auth.uid();
+$$;
+```
+
+Everything around it diverges, and not incidentally:
+
+- **The role model is different in all three.** PillProof has
+  `owner/carer/viewer`. Relay has `owner/family/helper`, where a helper is a paid
+  carer who sees everything except the money. **Handoff has no roles at all**,
+  because an owner in an adversarial pair is a lever: whoever signed up first
+  could delete the shared record before a hearing.
+- **The second helper is unrelated in each app**: `my_device_recipient`,
+  `my_party_id`, `my_family_circle_ids`.
+- **The vocabulary is the product.** Households, arrangements and circles are
+  not the same noun wearing different labels, and forcing them onto shared table
+  names to enable an extraction would make every app slightly wrong to read.
+
+**What repeats is a technique, not an artefact**, and a package cannot hold a
+technique. Extracting it would mean either a code generator or a false
+uniformity, and both are the wrong-abstraction failure `ARCHITECTURE.md` warns
+that extracting too early produces — reached this time by extracting too eagerly
+rather than too soon.
+
+The knowledge is real and belongs written down, so it is here rather than in
+code:
+
+1. **Policy recursion is the trap.** A policy on the membership table that
+   queries the membership table re-enters policy evaluation and loops forever.
+   `SECURITY DEFINER` breaks the cycle; `STABLE` makes Postgres cache the result
+   per statement instead of per row.
+2. **The creator needs their membership row from a trigger**, not the client.
+   Membership tables have `insert` revoked (a client that can write them can add
+   itself to any group whose id it can guess), so without an
+   `after insert on <group>` trigger the creator is locked out of the thing they
+   just made. Both PillProof and Relay needed this.
+3. **Author links are `on delete set null`, never `cascade`, on anything
+   shared.** Cascading lets one member erase their half of a shared history by
+   closing their own account. Stamp the author's name at write time instead:
+   it survives, and for a record that may be read later it is more correct
+   anyway.
+4. **Codes are `gen_random_bytes`, not `random()`.** `random()` is a seeded PRNG
+   whose output is predictable from earlier output, and these grant access to
+   somebody's medical or legal record.
+
 ### Checking a copy for drift
 
 `functions/` ships inside the package as of v0.2.1, so a consuming app can prove
