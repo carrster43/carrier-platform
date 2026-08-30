@@ -13,7 +13,7 @@ measurably duplicated between them:
 | `auth` | `lib/supabase.ts`, byte-identical in both | `createSupabaseClient(url, key)` |
 | `billing/access` | `lib/access.ts`, byte-identical in both | `evaluateAccess(profile, { trialDays })` |
 | `billing/purchases` | `lib/purchases.ts`, 2 lines apart | config passed in, no module-level constant |
-| `functions/` | three Edge Functions | canonical copies |
+| `functions/` | four Edge Functions | canonical copies |
 
 **Left in the apps on purpose:**
 
@@ -86,6 +86,31 @@ rather than a handler, so the copied file is identical in every app and the app'
 own function holds only vocabulary. Re-copying it cannot clobber an app-specific
 edit, because there are no app-specific edits. `trialDays` is an argument here,
 so the new rail cannot drift the way the older two did.
+
+### Reminder delivery, and why it extracted much less
+
+Added at **v0.3.0** from Paper Trail, House Ledger and FirstDay. The scope is
+deliberately far narrower than the extraction engine's, and the difference is
+the finding rather than an oversight.
+
+The engine was justified by 250 byte-identical lines out of 400: the whole
+runtime repeated and only vocabulary varied. Reminder delivery measured
+differently. `json`, `localParts` and `entitled` are byte-identical, about 55
+lines, and the `Deno.serve` preamble differs by four. **Everything else is
+genuinely per app**, because the three query different tables with different
+notions of "due": Paper Trail consumes an alert, House Ledger's tasks recur so
+its log is keyed by occurrence, and FirstDay must filter on `confirmed`, which
+is its whole product rule.
+
+So only the identical part moved. A `createReminderSender(config)` covering the
+rest would have been three query builders and three copywriters sharing one
+type, which is exactly the wrong abstraction `ARCHITECTURE.md` warns that
+extracting too early produces.
+
+What did move is small, pure and subtle enough that three copies is a real
+liability. `localParts` carries a DST edge and an hour-24 normalisation;
+`entitled` has to agree with the billing package or the server and the client
+disagree about who is a customer.
 
 ### Checking a copy for drift
 
