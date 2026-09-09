@@ -1,0 +1,27 @@
+# Run this repo's tests on every push and pull request.
+#
+# Added 2026-09-08. Before this, nothing ran them: no CI, no git hook and no
+# pre-release step existed in any of the 33 repos, so a test suite only
+# protected you when somebody remembered to type `npm test`. Several of these
+# suites exist specifically to catch changes that look like tidy-ups and do not
+# throw, which is exactly the kind a human forgets to check for.
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # The suites run under node --experimental-strip-types, which needs
+          # a modern Node. Pinned rather than floating so a runner image
+          # change cannot quietly break the build.
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
